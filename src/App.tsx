@@ -44,6 +44,8 @@ export default function App() {
 
   async function openShow(id: number) {
     setSelectedId(id)
+    setResults([])
+    setHasSearched(false)
     setDetailLoading(true)
     setError(null)
 
@@ -84,17 +86,19 @@ export default function App() {
 
       <main className="layout">
         <div className="main-column">
-          {hasSearched && !searchLoading && results.length === 0 && !error ? (
+          {hasSearched && !searchLoading && results.length === 0 && !error && !show ? (
             <p className="status-line empty-state">No shows matched that name. Try another title.</p>
           ) : null}
 
-          <SearchResults results={results} selectedId={selectedId} onSelect={openShow} />
+          {!show && !detailLoading ? (
+            <SearchResults results={results} selectedId={selectedId} onSelect={openShow} />
+          ) : null}
 
           {show ? <ShowDetailView show={show} loading={detailLoading} /> : null}
 
           {!show && detailLoading ? <p className="status-line">Loading show…</p> : null}
 
-          {!hasSearched && !show ? (
+          {!hasSearched && !show && !detailLoading ? (
             <p className="status-line empty-state">
               Search for a TV show to see Netflix, Hulu, Disney+, Max, Prime Video, and more.
             </p>

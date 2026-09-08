@@ -39,4 +39,5 @@ export type HistoryItem = {
   year: string | null
   posterUrl: string | null
   viewedAt: string
+  streamingProviders: Provider[]
 }

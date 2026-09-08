@@ -29,7 +29,8 @@ type ShowDetailViewProps = {
 }
 
 export function ShowDetailView({ show, loading }: ShowDetailViewProps) {
-  const hasAnyProvider = GROUP_LABELS.some(({ key }) => show.providers[key].length > 0)
+  const streamingKeys: (keyof ProviderGroups)[] = ['flatrate', 'ads', 'free']
+  const hasStreamingNow = streamingKeys.some((key) => show.providers[key].length > 0)
 
   return (
     <section className="panel detail-panel" aria-busy={loading}>
@@ -42,20 +43,20 @@ export function ShowDetailView({ show, loading }: ShowDetailViewProps) {
         <div className="detail-copy">
           <h2 className="detail-title">{show.name}</h2>
           {show.year ? <p className="detail-year">{show.year}</p> : null}
-          {show.overview ? <p className="detail-overview">{show.overview}</p> : null}
         </div>
       </div>
 
       <div className="providers-block">
-        <h3 className="providers-heading">Where to watch (US)</h3>
+        <h3 className="providers-heading">Currently available on (US)</h3>
         {loading ? <p className="status-line">Loading streaming services…</p> : null}
-        {!loading && !hasAnyProvider ? (
-          <p className="status-line">No streaming providers found for this show in the US.</p>
+        {!loading && !hasStreamingNow ? (
+          <p className="status-line">Not currently available to stream in the US.</p>
         ) : null}
         {!loading &&
-          GROUP_LABELS.map(({ key, label }) => {
+          streamingKeys.map((key) => {
             const providers = show.providers[key]
             if (providers.length === 0) return null
+            const label = GROUP_LABELS.find((group) => group.key === key)?.label ?? key
             return (
               <div key={key} className="provider-group">
                 <h4 className="provider-group-title">{label}</h4>
@@ -63,6 +64,20 @@ export function ShowDetailView({ show, loading }: ShowDetailViewProps) {
               </div>
             )
           })}
+
+        {!loading &&
+          (['rent', 'buy'] as const).map((key) => {
+            const providers = show.providers[key]
+            if (providers.length === 0) return null
+            const label = GROUP_LABELS.find((group) => group.key === key)?.label ?? key
+            return (
+              <div key={key} className="provider-group provider-group--secondary">
+                <h4 className="provider-group-title">{label}</h4>
+                <ProviderRow providers={providers} />
+              </div>
+            )
+          })}
+
         <p className="attribution">
           Streaming data from{' '}
           <a href="https://www.justwatch.com" target="_blank" rel="noreferrer">
@@ -79,6 +94,8 @@ export function ShowDetailView({ show, loading }: ShowDetailViewProps) {
           ) : null}
         </p>
       </div>
+
+      {show.overview ? <p className="detail-overview">{show.overview}</p> : null}
     </section>
   )
 }

@@ -30,6 +30,20 @@ export function PreviouslyViewed({ items, activeId, onSelect, onRemove }: Previo
                 <span className="history-meta">
                   <span className="history-name">{item.name}</span>
                   {item.year ? <span className="history-year">{item.year}</span> : null}
+                  {item.streamingProviders.length > 0 ? (
+                    <span className="history-providers" aria-label="Available on">
+                      {item.streamingProviders.map((provider) => (
+                        <span key={provider.id} className="history-provider" title={provider.name}>
+                          {provider.logoUrl ? (
+                            <img src={provider.logoUrl} alt="" className="history-provider-logo" />
+                          ) : null}
+                          <span className="history-provider-name">{provider.name}</span>
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="history-providers-empty">No current stream</span>
+                  )}
                 </span>
               </button>
               <button
