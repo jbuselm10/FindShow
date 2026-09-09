@@ -1,0 +1,11 @@
+<?php
+/**
+ * Optional local override for production.
+ * Copy to config.local.php on the server only if tmdb-config.php
+ * in the account home directory is not used.
+ *
+ * Do not commit config.local.php.
+ */
+return [
+  'TMDB_API_KEY' => 'your_tmdb_api_key_here',
+];
