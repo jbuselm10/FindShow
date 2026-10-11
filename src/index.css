@@ -340,6 +340,37 @@ a:hover {
   font-size: 0.75rem;
 }
 
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0.35rem 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.back-button:hover {
+  color: #9ff5ea;
+  transform: translateX(-2px);
+}
+
+.back-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.back-button-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
 .detail-header {
   display: flex;
   gap: 1.1rem;
