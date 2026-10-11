@@ -1,5 +1,8 @@
+export type MediaType = 'movie' | 'tv'
+
 export type SearchResult = {
   id: number
+  mediaType: MediaType
   name: string
   firstAirDate: string | null
   year: string | null
@@ -24,6 +27,7 @@ export type ProviderGroups = {
 
 export type ShowDetail = {
   id: number
+  mediaType: MediaType
   name: string
   firstAirDate: string | null
   year: string | null
@@ -35,6 +39,7 @@ export type ShowDetail = {
 
 export type HistoryItem = {
   id: number
+  mediaType: MediaType
   name: string
   year: string | null
   posterUrl: string | null

@@ -1,13 +1,20 @@
-import type { HistoryItem } from '../types'
+import type { HistoryItem, MediaType } from '../types'
 
 type PreviouslyViewedProps = {
   items: HistoryItem[]
   activeId: number | null
-  onSelect: (id: number) => void
-  onRemove: (id: number) => void
+  activeMediaType: MediaType | null
+  onSelect: (id: number, mediaType: MediaType) => void
+  onRemove: (id: number, mediaType: MediaType) => void
 }
 
-export function PreviouslyViewed({ items, activeId, onSelect, onRemove }: PreviouslyViewedProps) {
+export function PreviouslyViewed({
+  items,
+  activeId,
+  activeMediaType,
+  onSelect,
+  onRemove,
+}: PreviouslyViewedProps) {
   return (
     <aside className="panel history-panel" aria-label="Previously viewed shows">
       <h2 className="panel-title">Previously viewed</h2>
@@ -16,11 +23,13 @@ export function PreviouslyViewed({ items, activeId, onSelect, onRemove }: Previo
       ) : (
         <ul className="history-list">
           {items.map((item) => (
-            <li key={item.id} className="history-row">
+            <li key={`${item.mediaType}-${item.id}`} className="history-row">
               <button
                 type="button"
-                className={`history-item${activeId === item.id ? ' is-selected' : ''}`}
-                onClick={() => onSelect(item.id)}
+                className={`history-item${
+                  activeId === item.id && activeMediaType === item.mediaType ? ' is-selected' : ''
+                }`}
+                onClick={() => onSelect(item.id, item.mediaType)}
               >
                 {item.posterUrl ? (
                   <img className="history-poster" src={item.posterUrl} alt="" loading="lazy" />
@@ -50,7 +59,7 @@ export function PreviouslyViewed({ items, activeId, onSelect, onRemove }: Previo
                 type="button"
                 className="history-remove"
                 aria-label={`Remove ${item.name} from previously viewed`}
-                onClick={() => onRemove(item.id)}
+                onClick={() => onRemove(item.id, item.mediaType)}
               >
                 Remove
               </button>

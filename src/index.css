@@ -292,6 +292,7 @@ a:hover {
 }
 
 .result-year,
+.result-kind,
 .history-year,
 .detail-year {
   color: var(--muted);

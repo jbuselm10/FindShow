@@ -54,6 +54,10 @@ function sortProviders(providers: ReturnType<typeof mapProvider>[]) {
   return [...providers].sort((a, b) => a.displayPriority - b.displayPriority)
 }
 
+const MAX_SEARCH_RESULTS = 20
+
+type MediaType = 'movie' | 'tv'
+
 async function handleSearch(apiKey: string, req: IncomingMessage, res: ServerResponse) {
   const { searchParams } = readUrl(req)
   const q = (searchParams.get('q') ?? '').trim()
@@ -62,42 +66,62 @@ async function handleSearch(apiKey: string, req: IncomingMessage, res: ServerRes
     return
   }
 
-  type SearchShow = {
+  type MultiResult = {
     id: number
-    name: string
+    media_type?: string
+    name?: string
+    title?: string
     first_air_date?: string
+    release_date?: string
     overview?: string
     poster_path?: string | null
   }
 
-  const data = await tmdbFetch<{ results?: SearchShow[] }>(apiKey, '/search/tv', {
+  const data = await tmdbFetch<{ results?: MultiResult[] }>(apiKey, '/search/multi', {
     query: q,
     include_adult: 'false',
     language: 'en-US',
   })
 
-  const results = (data.results ?? []).map((show) => ({
-    id: show.id,
-    name: show.name,
-    firstAirDate: show.first_air_date ?? null,
-    year: show.first_air_date ? show.first_air_date.slice(0, 4) : null,
-    overview: show.overview ?? '',
-    posterUrl: show.poster_path ? `${IMAGE_BASE}/w185${show.poster_path}` : null,
-  }))
+  const results = (data.results ?? [])
+    .filter((item): item is MultiResult & { media_type: MediaType } => {
+      return item.media_type === 'movie' || item.media_type === 'tv'
+    })
+    .slice(0, MAX_SEARCH_RESULTS)
+    .map((item) => {
+      const date = item.media_type === 'movie' ? item.release_date : item.first_air_date
+      const name = item.media_type === 'movie' ? (item.title ?? '') : (item.name ?? '')
+      return {
+        id: item.id,
+        mediaType: item.media_type,
+        name,
+        firstAirDate: date ?? null,
+        year: date ? date.slice(0, 4) : null,
+        overview: item.overview ?? '',
+        posterUrl: item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null,
+      }
+    })
 
   sendJson(res, 200, { results })
 }
 
-async function handleShowProviders(apiKey: string, id: string, res: ServerResponse) {
+async function handleTitleProviders(
+  apiKey: string,
+  mediaType: MediaType,
+  id: string,
+  res: ServerResponse,
+) {
   if (!/^\d+$/.test(id)) {
-    sendJson(res, 400, { error: 'Invalid show id' })
+    sendJson(res, 400, { error: 'Invalid title id' })
     return
   }
 
-  type ShowDetails = {
+  type TitleDetails = {
     id: number
-    name: string
+    name?: string
+    title?: string
     first_air_date?: string
+    release_date?: string
     overview?: string
     poster_path?: string | null
   }
@@ -111,9 +135,10 @@ async function handleShowProviders(apiKey: string, id: string, res: ServerRespon
     buy?: Provider[]
   }
 
+  const detailsPath = mediaType === 'movie' ? `/movie/${id}` : `/tv/${id}`
   const [details, providersPayload] = await Promise.all([
-    tmdbFetch<ShowDetails>(apiKey, `/tv/${id}`, { language: 'en-US' }),
-    tmdbFetch<{ results?: Record<string, RegionProviders> }>(apiKey, `/tv/${id}/watch/providers`),
+    tmdbFetch<TitleDetails>(apiKey, detailsPath, { language: 'en-US' }),
+    tmdbFetch<{ results?: Record<string, RegionProviders> }>(apiKey, `${detailsPath}/watch/providers`),
   ])
 
   const us = providersPayload.results?.US ?? null
@@ -125,14 +150,19 @@ async function handleShowProviders(apiKey: string, id: string, res: ServerRespon
     buy: sortProviders((us?.buy ?? []).map(mapProvider)),
   }
 
+  const date = mediaType === 'movie' ? details.release_date : details.first_air_date
+  const name = mediaType === 'movie' ? (details.title ?? '') : (details.name ?? '')
+  const tmdbPath = mediaType === 'movie' ? 'movie' : 'tv'
+
   sendJson(res, 200, {
     id: details.id,
-    name: details.name,
-    firstAirDate: details.first_air_date ?? null,
-    year: details.first_air_date ? String(details.first_air_date).slice(0, 4) : null,
+    mediaType,
+    name,
+    firstAirDate: date ?? null,
+    year: date ? String(date).slice(0, 4) : null,
     overview: details.overview ?? '',
     posterUrl: details.poster_path ? `${IMAGE_BASE}/w342${details.poster_path}` : null,
-    tmdbUrl: us?.link ?? `https://www.themoviedb.org/tv/${details.id}`,
+    tmdbUrl: us?.link ?? `https://www.themoviedb.org/${tmdbPath}/${details.id}`,
     providers: groups,
   })
 }
@@ -158,9 +188,15 @@ function createApiMiddleware(apiKey: string): Connect.NextHandleFunction {
         return
       }
 
+      const titleMatch = url.pathname.match(/^\/api\/title\/(movie|tv)\/([^/]+)\/providers$/)
+      if (req.method === 'GET' && titleMatch) {
+        await handleTitleProviders(apiKey, titleMatch[1] as MediaType, titleMatch[2], res)
+        return
+      }
+
       const showMatch = url.pathname.match(/^\/api\/show\/([^/]+)\/providers$/)
       if (req.method === 'GET' && showMatch) {
-        await handleShowProviders(apiKey, showMatch[1], res)
+        await handleTitleProviders(apiKey, 'tv', showMatch[1], res)
         return
       }
 

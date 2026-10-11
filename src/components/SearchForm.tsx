@@ -19,7 +19,7 @@ export function SearchForm({ initialQuery = '', loading, onSearch }: SearchFormP
   return (
     <form className="search-form" onSubmit={handleSubmit}>
       <label className="sr-only" htmlFor="show-query">
-        Show name
+        Show or movie name
       </label>
       <input
         id="show-query"
@@ -28,7 +28,7 @@ export function SearchForm({ initialQuery = '', loading, onSearch }: SearchFormP
         name="q"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Enter a show name…"
+        placeholder="Enter a show or movie name…"
         autoComplete="off"
         autoFocus
       />

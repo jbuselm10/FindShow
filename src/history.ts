@@ -1,4 +1,4 @@
-import type { HistoryItem, Provider, ProviderGroups, ShowDetail } from './types'
+import type { HistoryItem, MediaType, Provider, ProviderGroups, ShowDetail } from './types'
 
 const STORAGE_KEY = 'findshow:history'
 const MAX_ITEMS = 20
@@ -27,6 +27,7 @@ export function loadHistory(): HistoryItem[] {
 
     return parsed.map((item) => ({
       id: item.id,
+      mediaType: item.mediaType === 'movie' ? 'movie' : 'tv',
       name: item.name,
       year: item.year ?? null,
       posterUrl: item.posterUrl ?? null,
@@ -45,6 +46,7 @@ function saveHistory(items: HistoryItem[]) {
 export function addToHistory(show: ShowDetail): HistoryItem[] {
   const next: HistoryItem = {
     id: show.id,
+    mediaType: show.mediaType,
     name: show.name,
     year: show.year,
     posterUrl: show.posterUrl,
@@ -52,14 +54,16 @@ export function addToHistory(show: ShowDetail): HistoryItem[] {
     streamingProviders: getStreamingProviders(show.providers),
   }
 
-  const filtered = loadHistory().filter((item) => item.id !== show.id)
+  const filtered = loadHistory().filter(
+    (item) => item.id !== show.id || item.mediaType !== show.mediaType,
+  )
   const items = [next, ...filtered].slice(0, MAX_ITEMS)
   saveHistory(items)
   return items
 }
 
-export function removeFromHistory(id: number): HistoryItem[] {
-  const items = loadHistory().filter((item) => item.id !== id)
+export function removeFromHistory(id: number, mediaType: MediaType): HistoryItem[] {
+  const items = loadHistory().filter((item) => item.id !== id || item.mediaType !== mediaType)
   saveHistory(items)
   return items
 }

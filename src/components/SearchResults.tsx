@@ -1,12 +1,18 @@
-import type { SearchResult } from '../types'
+import type { MediaType, SearchResult } from '../types'
 
 type SearchResultsProps = {
   results: SearchResult[]
   selectedId: number | null
-  onSelect: (id: number) => void
+  selectedMediaType: MediaType | null
+  onSelect: (id: number, mediaType: MediaType) => void
 }
 
-export function SearchResults({ results, selectedId, onSelect }: SearchResultsProps) {
+export function SearchResults({
+  results,
+  selectedId,
+  selectedMediaType,
+  onSelect,
+}: SearchResultsProps) {
   if (results.length === 0) return null
 
   return (
@@ -14,11 +20,13 @@ export function SearchResults({ results, selectedId, onSelect }: SearchResultsPr
       <h2 className="panel-title">Matches</h2>
       <ul className="result-list">
         {results.map((show) => (
-          <li key={show.id}>
+          <li key={`${show.mediaType}-${show.id}`}>
             <button
               type="button"
-              className={`result-item${selectedId === show.id ? ' is-selected' : ''}`}
-              onClick={() => onSelect(show.id)}
+              className={`result-item${
+                selectedId === show.id && selectedMediaType === show.mediaType ? ' is-selected' : ''
+              }`}
+              onClick={() => onSelect(show.id, show.mediaType)}
             >
               {show.posterUrl ? (
                 <img className="result-poster" src={show.posterUrl} alt="" loading="lazy" />
@@ -27,7 +35,10 @@ export function SearchResults({ results, selectedId, onSelect }: SearchResultsPr
               )}
               <span className="result-meta">
                 <span className="result-name">{show.name}</span>
-                {show.year ? <span className="result-year">{show.year}</span> : null}
+                <span className="result-kind">
+                  {show.mediaType === 'movie' ? 'Movie' : 'TV'}
+                  {show.year ? ` · ${show.year}` : ''}
+                </span>
               </span>
             </button>
           </li>

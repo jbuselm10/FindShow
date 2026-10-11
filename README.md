@@ -1,6 +1,6 @@
 # FindShow
 
-Find which streaming service a TV show is on (US), with a previously viewed list.
+Find which streaming service a TV show or movie is on (US), with a previously viewed list. Documentaries indexed as movies are included in search.
 
 ## Setup
 

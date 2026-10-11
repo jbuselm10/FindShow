@@ -1,4 +1,4 @@
-import type { SearchResult, ShowDetail } from '../types'
+import type { MediaType, SearchResult, ShowDetail } from '../types'
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json()
@@ -14,7 +14,7 @@ export async function searchShows(query: string): Promise<SearchResult[]> {
   return data.results
 }
 
-export async function getShowProviders(id: number): Promise<ShowDetail> {
-  const response = await fetch(`/api/show/${id}/providers`)
+export async function getTitleProviders(id: number, mediaType: MediaType): Promise<ShowDetail> {
+  const response = await fetch(`/api/title/${mediaType}/${id}/providers`)
   return parseJson<ShowDetail>(response)
 }
