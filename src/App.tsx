@@ -5,33 +5,33 @@ import { SearchResults } from './components/SearchResults'
 import { ShowDetailView } from './components/ShowDetail'
 import { PreviouslyViewed } from './components/PreviouslyViewed'
 import { addToHistory, loadHistory, removeFromHistory } from './history'
+import {
+  isAppHistoryState,
+  navigateApp,
+  readLocationState,
+  type AppHistoryState,
+} from './navigation'
 import type { HistoryItem, MediaType, SearchResult, ShowDetail } from './types'
 
-type AppHistoryState = {
-  findShow?: true
-  view: 'search' | 'detail'
-  id?: number
-  mediaType?: MediaType
-}
-
-function isAppHistoryState(value: unknown): value is AppHistoryState {
-  if (!value || typeof value !== 'object') return false
-  const state = value as AppHistoryState
-  return state.findShow === true && (state.view === 'search' || state.view === 'detail')
-}
-
 export default function App() {
+  const initialLocation = readLocationState()
   const [history, setHistory] = useState<HistoryItem[]>(() => loadHistory())
   const [searchLoading, setSearchLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState(initialLocation.query ?? '')
   const [results, setResults] = useState<SearchResult[]>([])
   const [selected, setSelected] = useState<{ id: number; mediaType: MediaType } | null>(null)
   const [show, setShow] = useState<ShowDetail | null>(null)
-  const [hasSearched, setHasSearched] = useState(false)
-  const openTitleRef = useRef<(id: number, mediaType: MediaType, pushHistory?: boolean) => Promise<void>>(
+  const [hasSearched, setHasSearched] = useState(Boolean(initialLocation.query))
+  const openTitleRef = useRef<
+    (id: number, mediaType: MediaType, options?: { pushHistory?: boolean; query?: string }) => Promise<void>
+  >(async () => {})
+  const runSearchRef = useRef<(nextQuery: string, options?: { pushHistory?: boolean }) => Promise<void>>(
     async () => {},
   )
+  const resultsQueryRef = useRef('')
+  const bootstrappedRef = useRef(false)
 
   useEffect(() => {
     setHistory(loadHistory())
@@ -39,7 +39,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isAppHistoryState(window.history.state)) {
-      window.history.replaceState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
+      navigateApp(readLocationState(), 'replace')
     }
   }, [])
 
@@ -51,52 +51,110 @@ export default function App() {
       setError(null)
     }
 
-    function onPopState(event: PopStateEvent) {
-      const state = isAppHistoryState(event.state)
-        ? event.state
-        : ({ findShow: true, view: 'search' } satisfies AppHistoryState)
-
+    function applyHistoryState(state: AppHistoryState) {
       if (state.view === 'detail' && state.id != null && state.mediaType) {
-        void openTitleRef.current(state.id, state.mediaType, false)
+        if (state.query) setQuery(state.query)
+        void openTitleRef.current(state.id, state.mediaType, {
+          pushHistory: false,
+          query: state.query,
+        })
         return
       }
 
       clearDetailView()
+
+      if (state.view === 'search' && state.query) {
+        setQuery(state.query)
+        setHasSearched(true)
+        if (resultsQueryRef.current !== state.query) {
+          void runSearchRef.current(state.query, { pushHistory: false })
+        }
+        return
+      }
+
+      if (state.view === 'home') {
+        setQuery('')
+        setResults([])
+        setHasSearched(false)
+      }
+    }
+
+    function onPopState(event: PopStateEvent) {
+      const state = isAppHistoryState(event.state) ? event.state : readLocationState()
+      applyHistoryState(state)
     }
 
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
-  async function handleSearch(query: string) {
+  useEffect(() => {
+    if (bootstrappedRef.current) return
+    bootstrappedRef.current = true
+
+    const state = readLocationState()
+    if (state.view === 'detail' && state.id != null && state.mediaType) {
+      if (state.query) {
+        setQuery(state.query)
+        setHasSearched(true)
+      }
+      void openTitleRef.current(state.id, state.mediaType, {
+        pushHistory: false,
+        query: state.query,
+      })
+      return
+    }
+
+    if (state.view === 'search' && state.query) {
+      void runSearchRef.current(state.query, { pushHistory: false })
+    }
+  }, [])
+
+  async function runSearch(nextQuery: string, options: { pushHistory?: boolean } = {}) {
+    const { pushHistory = true } = options
+    const trimmed = nextQuery.trim()
+    if (!trimmed) return
+
     setSearchLoading(true)
     setError(null)
     setHasSearched(true)
+    setQuery(trimmed)
     setShow(null)
     setSelected(null)
 
-    const current = window.history.state
-    if (isAppHistoryState(current) && current.view === 'detail') {
-      window.history.pushState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
-    } else {
-      window.history.replaceState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
+    if (pushHistory) {
+      const current = window.history.state
+      const mode =
+        isAppHistoryState(current) && current.view === 'detail' ? 'push' : 'replace'
+      navigateApp({ findShow: true, view: 'search', query: trimmed }, mode)
     }
 
     try {
-      const nextResults = await searchShows(query)
+      const nextResults = await searchShows(trimmed)
       setResults(nextResults)
-      if (nextResults.length === 1) {
-        await openTitle(nextResults[0].id, nextResults[0].mediaType)
+      resultsQueryRef.current = trimmed
+      if (nextResults.length === 1 && pushHistory) {
+        await openTitle(nextResults[0].id, nextResults[0].mediaType, { query: trimmed })
       }
     } catch (err) {
       setResults([])
+      resultsQueryRef.current = ''
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
       setSearchLoading(false)
     }
   }
 
-  async function openTitle(id: number, mediaType: MediaType, pushHistory = true) {
+  runSearchRef.current = runSearch
+
+  async function openTitle(
+    id: number,
+    mediaType: MediaType,
+    options: { pushHistory?: boolean; query?: string } = {},
+  ) {
+    const { pushHistory = true, query: queryOverride } = options
+    const activeQuery = (queryOverride ?? query).trim()
+
     setSelected({ id, mediaType })
     setDetailLoading(true)
     setError(null)
@@ -109,9 +167,15 @@ export default function App() {
         current.id === id &&
         current.mediaType === mediaType
       if (!sameDetail) {
-        window.history.pushState(
-          { findShow: true, view: 'detail', id, mediaType } satisfies AppHistoryState,
-          '',
+        navigateApp(
+          {
+            findShow: true,
+            view: 'detail',
+            query: activeQuery || undefined,
+            id,
+            mediaType,
+          },
+          'push',
         )
       }
     }
@@ -131,15 +195,23 @@ export default function App() {
   openTitleRef.current = openTitle
 
   function handleBack() {
-    if (isAppHistoryState(window.history.state) && window.history.state.view === 'detail') {
+    const current = window.history.state
+    if (isAppHistoryState(current) && current.view === 'detail') {
       window.history.back()
       return
     }
 
+    // Fallback if history state was lost: restore list without leaving the site.
     setShow(null)
     setSelected(null)
     setDetailLoading(false)
     setError(null)
+    navigateApp(
+      query
+        ? { findShow: true, view: 'search', query }
+        : { findShow: true, view: 'home' },
+      'replace',
+    )
   }
 
   function handleRemoveHistory(id: number, mediaType: MediaType) {
@@ -150,7 +222,7 @@ export default function App() {
     }
   }
 
-  const backLabel = results.length > 0 ? 'Back to results' : 'Back'
+  const backLabel = results.length > 0 || query ? 'Back to results' : 'Back'
 
   return (
     <div className="app-shell">
@@ -158,7 +230,7 @@ export default function App() {
       <header className="hero">
         <p className="brand">FindShow</p>
         <p className="tagline">Type a show or movie. See where it streams.</p>
-        <SearchForm loading={searchLoading} onSearch={handleSearch} />
+        <SearchForm initialQuery={query} loading={searchLoading} onSearch={runSearch} />
       </header>
 
       {error ? (

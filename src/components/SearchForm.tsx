@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 
 type SearchFormProps = {
   initialQuery?: string
@@ -8,6 +8,10 @@ type SearchFormProps = {
 
 export function SearchForm({ initialQuery = '', loading, onSearch }: SearchFormProps) {
   const [query, setQuery] = useState(initialQuery)
+
+  useEffect(() => {
+    setQuery(initialQuery)
+  }, [initialQuery])
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
