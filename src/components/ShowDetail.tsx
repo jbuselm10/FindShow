@@ -26,14 +26,30 @@ function ProviderRow({ providers }: { providers: Provider[] }) {
 type ShowDetailViewProps = {
   show: ShowDetail
   loading: boolean
+  onBack?: () => void
+  backLabel?: string
 }
 
-export function ShowDetailView({ show, loading }: ShowDetailViewProps) {
+export function ShowDetailView({
+  show,
+  loading,
+  onBack,
+  backLabel = 'Back',
+}: ShowDetailViewProps) {
   const streamingKeys: (keyof ProviderGroups)[] = ['flatrate', 'ads', 'free']
   const hasStreamingNow = streamingKeys.some((key) => show.providers[key].length > 0)
 
   return (
     <section className="panel detail-panel" aria-busy={loading}>
+      {onBack ? (
+        <button type="button" className="back-button" onClick={onBack}>
+          <span className="back-button-icon" aria-hidden="true">
+            ←
+          </span>
+          {backLabel}
+        </button>
+      ) : null}
+
       <div className="detail-header">
         {show.posterUrl ? (
           <img className="detail-poster" src={show.posterUrl} alt="" />

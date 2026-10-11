@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getTitleProviders, searchShows } from './api/client'
 import { SearchForm } from './components/SearchForm'
 import { SearchResults } from './components/SearchResults'
@@ -6,6 +6,19 @@ import { ShowDetailView } from './components/ShowDetail'
 import { PreviouslyViewed } from './components/PreviouslyViewed'
 import { addToHistory, loadHistory, removeFromHistory } from './history'
 import type { HistoryItem, MediaType, SearchResult, ShowDetail } from './types'
+
+type AppHistoryState = {
+  findShow?: true
+  view: 'search' | 'detail'
+  id?: number
+  mediaType?: MediaType
+}
+
+function isAppHistoryState(value: unknown): value is AppHistoryState {
+  if (!value || typeof value !== 'object') return false
+  const state = value as AppHistoryState
+  return state.findShow === true && (state.view === 'search' || state.view === 'detail')
+}
 
 export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>(() => loadHistory())
@@ -16,9 +29,43 @@ export default function App() {
   const [selected, setSelected] = useState<{ id: number; mediaType: MediaType } | null>(null)
   const [show, setShow] = useState<ShowDetail | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const openTitleRef = useRef<(id: number, mediaType: MediaType, pushHistory?: boolean) => Promise<void>>(
+    async () => {},
+  )
 
   useEffect(() => {
     setHistory(loadHistory())
+  }, [])
+
+  useEffect(() => {
+    if (!isAppHistoryState(window.history.state)) {
+      window.history.replaceState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
+    }
+  }, [])
+
+  useEffect(() => {
+    function clearDetailView() {
+      setShow(null)
+      setSelected(null)
+      setDetailLoading(false)
+      setError(null)
+    }
+
+    function onPopState(event: PopStateEvent) {
+      const state = isAppHistoryState(event.state)
+        ? event.state
+        : ({ findShow: true, view: 'search' } satisfies AppHistoryState)
+
+      if (state.view === 'detail' && state.id != null && state.mediaType) {
+        void openTitleRef.current(state.id, state.mediaType, false)
+        return
+      }
+
+      clearDetailView()
+    }
+
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
   async function handleSearch(query: string) {
@@ -27,6 +74,13 @@ export default function App() {
     setHasSearched(true)
     setShow(null)
     setSelected(null)
+
+    const current = window.history.state
+    if (isAppHistoryState(current) && current.view === 'detail') {
+      window.history.pushState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
+    } else {
+      window.history.replaceState({ findShow: true, view: 'search' } satisfies AppHistoryState, '')
+    }
 
     try {
       const nextResults = await searchShows(query)
@@ -42,12 +96,25 @@ export default function App() {
     }
   }
 
-  async function openTitle(id: number, mediaType: MediaType) {
+  async function openTitle(id: number, mediaType: MediaType, pushHistory = true) {
     setSelected({ id, mediaType })
-    setResults([])
-    setHasSearched(false)
     setDetailLoading(true)
     setError(null)
+
+    if (pushHistory) {
+      const current = window.history.state
+      const sameDetail =
+        isAppHistoryState(current) &&
+        current.view === 'detail' &&
+        current.id === id &&
+        current.mediaType === mediaType
+      if (!sameDetail) {
+        window.history.pushState(
+          { findShow: true, view: 'detail', id, mediaType } satisfies AppHistoryState,
+          '',
+        )
+      }
+    }
 
     try {
       const detail = await getTitleProviders(id, mediaType)
@@ -61,6 +128,20 @@ export default function App() {
     }
   }
 
+  openTitleRef.current = openTitle
+
+  function handleBack() {
+    if (isAppHistoryState(window.history.state) && window.history.state.view === 'detail') {
+      window.history.back()
+      return
+    }
+
+    setShow(null)
+    setSelected(null)
+    setDetailLoading(false)
+    setError(null)
+  }
+
   function handleRemoveHistory(id: number, mediaType: MediaType) {
     setHistory(removeFromHistory(id, mediaType))
     if (selected?.id === id && selected.mediaType === mediaType) {
@@ -68,6 +149,8 @@ export default function App() {
       setShow(null)
     }
   }
+
+  const backLabel = results.length > 0 ? 'Back to results' : 'Back'
 
   return (
     <div className="app-shell">
@@ -86,7 +169,7 @@ export default function App() {
 
       <main className="layout">
         <div className="main-column">
-          {hasSearched && !searchLoading && results.length === 0 && !error && !show ? (
+          {hasSearched && !searchLoading && results.length === 0 && !error && !show && !detailLoading ? (
             <p className="status-line empty-state">
               No shows or movies matched that name. Try another title.
             </p>
@@ -101,9 +184,26 @@ export default function App() {
             />
           ) : null}
 
-          {show ? <ShowDetailView show={show} loading={detailLoading} /> : null}
+          {show ? (
+            <ShowDetailView
+              show={show}
+              loading={detailLoading}
+              onBack={handleBack}
+              backLabel={backLabel}
+            />
+          ) : null}
 
-          {!show && detailLoading ? <p className="status-line">Loading show…</p> : null}
+          {!show && detailLoading ? (
+            <div className="panel detail-panel">
+              <button type="button" className="back-button" onClick={handleBack}>
+                <span className="back-button-icon" aria-hidden="true">
+                  ←
+                </span>
+                {backLabel}
+              </button>
+              <p className="status-line">Loading show…</p>
+            </div>
+          ) : null}
 
           {!hasSearched && !show && !detailLoading ? (
             <p className="status-line empty-state">
