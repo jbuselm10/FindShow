@@ -112,22 +112,36 @@ function handle_search(string $apiKey): void
         send_json(400, ['error' => 'Missing search query']);
     }
 
-    $data = tmdb_fetch($apiKey, '/search/tv', [
+    $data = tmdb_fetch($apiKey, '/search/multi', [
         'query' => $q,
         'include_adult' => 'false',
         'language' => 'en-US',
     ]);
 
     $results = [];
-    foreach ($data['results'] ?? [] as $show) {
-        $firstAir = $show['first_air_date'] ?? null;
-        $poster = $show['poster_path'] ?? null;
+    foreach ($data['results'] ?? [] as $item) {
+        $mediaType = $item['media_type'] ?? '';
+        if ($mediaType !== 'movie' && $mediaType !== 'tv') {
+            continue;
+        }
+        if (count($results) >= 20) {
+            break;
+        }
+
+        $date = $mediaType === 'movie'
+            ? ($item['release_date'] ?? null)
+            : ($item['first_air_date'] ?? null);
+        $name = $mediaType === 'movie'
+            ? (string) ($item['title'] ?? '')
+            : (string) ($item['name'] ?? '');
+        $poster = $item['poster_path'] ?? null;
         $results[] = [
-            'id' => $show['id'],
-            'name' => $show['name'],
-            'firstAirDate' => $firstAir,
-            'year' => $firstAir ? substr((string) $firstAir, 0, 4) : null,
-            'overview' => $show['overview'] ?? '',
+            'id' => $item['id'],
+            'mediaType' => $mediaType,
+            'name' => $name,
+            'firstAirDate' => $date,
+            'year' => $date ? substr((string) $date, 0, 4) : null,
+            'overview' => $item['overview'] ?? '',
             'posterUrl' => $poster ? IMAGE_BASE . '/w185' . $poster : null,
         ];
     }
@@ -135,27 +149,39 @@ function handle_search(string $apiKey): void
     send_json(200, ['results' => $results]);
 }
 
-function handle_show_providers(string $apiKey, string $id): void
+function handle_title_providers(string $apiKey, string $mediaType, string $id): void
 {
-    if (!preg_match('/^\d+$/', $id)) {
-        send_json(400, ['error' => 'Invalid show id']);
+    if ($mediaType !== 'movie' && $mediaType !== 'tv') {
+        send_json(400, ['error' => 'Invalid media type']);
     }
 
-    $details = tmdb_fetch($apiKey, "/tv/{$id}", ['language' => 'en-US']);
-    $providersPayload = tmdb_fetch($apiKey, "/tv/{$id}/watch/providers");
+    if (!preg_match('/^\d+$/', $id)) {
+        send_json(400, ['error' => 'Invalid title id']);
+    }
+
+    $detailsPath = $mediaType === 'movie' ? "/movie/{$id}" : "/tv/{$id}";
+    $details = tmdb_fetch($apiKey, $detailsPath, ['language' => 'en-US']);
+    $providersPayload = tmdb_fetch($apiKey, "{$detailsPath}/watch/providers");
 
     $us = $providersPayload['results']['US'] ?? null;
-    $firstAir = $details['first_air_date'] ?? null;
+    $date = $mediaType === 'movie'
+        ? ($details['release_date'] ?? null)
+        : ($details['first_air_date'] ?? null);
+    $name = $mediaType === 'movie'
+        ? (string) ($details['title'] ?? '')
+        : (string) ($details['name'] ?? '');
     $poster = $details['poster_path'] ?? null;
+    $tmdbPath = $mediaType === 'movie' ? 'movie' : 'tv';
 
     send_json(200, [
         'id' => $details['id'],
-        'name' => $details['name'],
-        'firstAirDate' => $firstAir,
-        'year' => $firstAir ? substr((string) $firstAir, 0, 4) : null,
+        'mediaType' => $mediaType,
+        'name' => $name,
+        'firstAirDate' => $date,
+        'year' => $date ? substr((string) $date, 0, 4) : null,
         'overview' => $details['overview'] ?? '',
         'posterUrl' => $poster ? IMAGE_BASE . '/w342' . $poster : null,
-        'tmdbUrl' => $us['link'] ?? ('https://www.themoviedb.org/tv/' . $details['id']),
+        'tmdbUrl' => $us['link'] ?? ('https://www.themoviedb.org/' . $tmdbPath . '/' . $details['id']),
         'providers' => [
             'flatrate' => map_provider_list($us['flatrate'] ?? null),
             'ads' => map_provider_list($us['ads'] ?? null),
@@ -185,8 +211,12 @@ try {
         handle_search($apiKey);
     }
 
+    if (preg_match('#^/api/title/(movie|tv)/([^/]+)/providers$#', $path, $matches)) {
+        handle_title_providers($apiKey, $matches[1], $matches[2]);
+    }
+
     if (preg_match('#^/api/show/([^/]+)/providers$#', $path, $matches)) {
-        handle_show_providers($apiKey, $matches[1]);
+        handle_title_providers($apiKey, 'tv', $matches[1]);
     }
 
     send_json(404, ['error' => 'Not found']);
