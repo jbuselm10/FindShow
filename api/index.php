@@ -13,6 +13,27 @@ function send_json(int $status, array $body): void
     exit;
 }
 
+function request_path(): string
+{
+    if (isset($_GET['__route']) && is_string($_GET['__route'])) {
+        $route = trim(rawurldecode($_GET['__route']), '/');
+        if ($route !== '') {
+            return '/api/' . $route;
+        }
+    }
+
+    $uri = $_SERVER['REDIRECT_URL'] ?? $_SERVER['REQUEST_URI'] ?? '/';
+    $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+    $path = rawurldecode($path);
+    $path = rtrim($path, '/') ?: '/';
+
+    if (preg_match('#(/api/(?:chat|search|title/(?:movie|tv)/[^/]+/providers|show/[^/]+/providers))$#', $path, $matches)) {
+        return $matches[1];
+    }
+
+    return $path;
+}
+
 function load_config(): array
 {
     $candidates = [
@@ -447,8 +468,7 @@ function handle_chat(): void
 
 try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-    $path = rawurldecode($path);
+    $path = request_path();
 
     if ($path === '/api/chat') {
         if ($method !== 'POST') {
