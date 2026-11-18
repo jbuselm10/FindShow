@@ -19,7 +19,7 @@ if not exist "node_modules\" (
 )
 
 if not exist ".env" (
-  echo Warning: .env is missing. Copy .env.example and add TMDB_API_KEY.
+  echo Warning: .env is missing. Copy .env.example and add TMDB_API_KEY and OPENAI_API_KEY.
 )
 
 echo Starting FindShow...

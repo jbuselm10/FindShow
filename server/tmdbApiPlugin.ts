@@ -200,7 +200,8 @@ function createApiMiddleware(apiKey: string): Connect.NextHandleFunction {
         return
       }
 
-      sendJson(res, 404, { error: 'Not found' })
+      next()
+      return
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       sendJson(res, 502, { error: message })

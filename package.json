@@ -4,10 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-site-knowledge.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/build-site-knowledge.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:knowledge": "node scripts/build-site-knowledge.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

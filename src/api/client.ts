@@ -1,4 +1,4 @@
-import type { MediaType, SearchResult, ShowDetail } from '../types'
+import type { ChatMessage, ChatResponse, MediaType, SearchResult, ShowDetail } from '../types'
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json()
@@ -17,4 +17,13 @@ export async function searchShows(query: string): Promise<SearchResult[]> {
 export async function getTitleProviders(id: number, mediaType: MediaType): Promise<ShowDetail> {
   const response = await fetch(`/api/title/${mediaType}/${id}/providers`)
   return parseJson<ShowDetail>(response)
+}
+
+export async function sendChatMessage(messages: ChatMessage[]): Promise<ChatResponse> {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  })
+  return parseJson<ChatResponse>(response)
 }

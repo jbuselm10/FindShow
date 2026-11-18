@@ -4,6 +4,7 @@ import { SearchForm } from './components/SearchForm'
 import { SearchResults } from './components/SearchResults'
 import { ShowDetailView } from './components/ShowDetail'
 import { PreviouslyViewed } from './components/PreviouslyViewed'
+import { SiteChat } from './components/SiteChat'
 import { addToHistory, loadHistory, removeFromHistory } from './history'
 import {
   isAppHistoryState,
@@ -292,6 +293,8 @@ export default function App() {
           onRemove={handleRemoveHistory}
         />
       </main>
+
+      <SiteChat />
     </div>
   )
 }
