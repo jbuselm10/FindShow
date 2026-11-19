@@ -38,7 +38,7 @@ import type {
 
 type PendingSave =
   | { kind: 'watching'; show: ShowDetail; providers: Provider[]; visibility: ListVisibility }
-  | { kind: 'toWatch'; show: ShowDetail; visibility: ListVisibility }
+  | { kind: 'toWatch'; show: ShowDetail; visibility: ListVisibility; providers: Provider[] }
   | { kind: 'sidebar' }
   | { kind: 'nav'; target: 'watching' | 'toWatch' }
 
@@ -454,6 +454,7 @@ export default function App() {
     detail: ShowDetail,
     activeEmail: string,
     visibility: ListVisibility = 'private',
+    providers: Provider[] = [],
   ) {
     setListBusy(true)
     setError(null)
@@ -464,6 +465,7 @@ export default function App() {
         name: detail.name,
         year: detail.year,
         posterUrl: detail.posterUrl,
+        providers,
         visibility,
       })
       setLists(next)
@@ -504,15 +506,15 @@ export default function App() {
     void addWatching(show, providers, emailRef.current, visibility)
   }
 
-  function requestAddToWatch(visibility: ListVisibility) {
+  function requestAddToWatch(visibility: ListVisibility, providers: Provider[]) {
     if (!show) return
     if (!emailRef.current) {
-      setPendingSave({ kind: 'toWatch', show, visibility })
+      setPendingSave({ kind: 'toWatch', show, visibility, providers })
       setEmailPromptError(null)
       setEmailPromptOpen(true)
       return
     }
-    void addToWatchList(show, emailRef.current, visibility)
+    void addToWatchList(show, emailRef.current, visibility, providers)
   }
 
   function requestSidebarEmail() {
@@ -540,7 +542,7 @@ export default function App() {
       if (pending.kind === 'watching') {
         await addWatching(pending.show, pending.providers, nextEmail, pending.visibility)
       } else if (pending.kind === 'toWatch') {
-        await addToWatchList(pending.show, nextEmail, pending.visibility)
+        await addToWatchList(pending.show, nextEmail, pending.visibility, pending.providers)
       } else if (pending.kind === 'nav') {
         setView(pending.target)
         setFromView(pending.target)

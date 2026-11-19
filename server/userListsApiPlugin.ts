@@ -31,6 +31,7 @@ type ToWatchItem = {
   name: string
   year: string | null
   posterUrl: string | null
+  selectedProviders: Provider[]
   visibility: ListVisibility
   updatedAt: string
 }
@@ -138,7 +139,11 @@ function withVisibilityWatching(row: WatchingItem): WatchingItem {
 }
 
 function withVisibilityToWatch(row: ToWatchItem): ToWatchItem {
-  return { ...row, visibility: normalizeVisibility(row.visibility) }
+  return {
+    ...row,
+    selectedProviders: normalizeProviders(row.selectedProviders),
+    visibility: normalizeVisibility(row.visibility),
+  }
 }
 
 function ensureBucket(store: Store, email: string): UserBucket {
@@ -408,6 +413,7 @@ function createListsMiddleware(root: string): Connect.NextHandleFunction {
         name,
         year,
         posterUrl,
+        selectedProviders: normalizeProviders(itemRow.providers),
         visibility: normalizeVisibility(itemRow.visibility),
         updatedAt: new Date().toISOString(),
       }

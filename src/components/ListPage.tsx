@@ -149,6 +149,18 @@ export function ListPage(props: ListPageProps) {
                     <span className="history-year">
                       {[item.mediaType === 'tv' ? 'Show' : 'Movie', item.year].filter(Boolean).join(' · ')}
                     </span>
+                    {item.selectedProviders?.length > 0 ? (
+                      <span className="history-providers" aria-label="Available on">
+                        {item.selectedProviders.map((provider) => (
+                          <span key={provider.id} className="history-provider" title={provider.name}>
+                            {provider.logoUrl ? (
+                              <img src={provider.logoUrl} alt="" className="history-provider-logo" />
+                            ) : null}
+                            <span className="history-provider-name">{provider.name}</span>
+                          </span>
+                        ))}
+                      </span>
+                    ) : null}
                   </span>
                 </button>
                 <button

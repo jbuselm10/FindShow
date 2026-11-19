@@ -217,6 +217,9 @@ export function HomeLanding({
                           >
                             {item.name}
                             {item.year ? ` (${item.year})` : ''}
+                            {item.selectedProviders?.length
+                              ? ` · ${item.selectedProviders.map((provider) => provider.name).join(', ')}`
+                              : ''}
                           </button>
                         </li>
                       ))}

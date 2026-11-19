@@ -220,6 +220,7 @@ function lists_normalize_item_row(array $row, string $listKind): array
         'posterUrl' => isset($row['posterUrl']) && is_string($row['posterUrl']) && $row['posterUrl'] !== ''
             ? $row['posterUrl']
             : null,
+        'selectedProviders' => lists_provider_list($row['selectedProviders'] ?? []),
         'visibility' => $visibility,
         'updatedAt' => isset($row['updatedAt']) && is_string($row['updatedAt']) ? $row['updatedAt'] : '',
     ];
@@ -504,6 +505,7 @@ function handle_lists_to_watch(): void
                         'name' => $name,
                         'year' => $year,
                         'posterUrl' => $posterUrl,
+                        'selectedProviders' => lists_provider_list($item['providers'] ?? []),
                         'visibility' => lists_normalize_visibility($item['visibility'] ?? 'private'),
                         'updatedAt' => gmdate('c'),
                     ];

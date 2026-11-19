@@ -75,6 +75,7 @@ export async function updateToWatch(
   email: string,
   action: 'add' | 'remove',
   item: Pick<ToWatchItem, 'id' | 'mediaType' | 'name' | 'year' | 'posterUrl'> & {
+    providers?: Provider[]
     visibility?: ListVisibility
   },
 ): Promise<UserLists> {

@@ -47,7 +47,7 @@ type ShowDetailViewProps = {
   listBusy?: boolean
   onAddWatching: (providers: Provider[], visibility: ListVisibility) => void
   onRemoveWatching: () => void
-  onAddToWatch: (visibility: ListVisibility) => void
+  onAddToWatch: (visibility: ListVisibility, providers: Provider[]) => void
   onRemoveToWatch: () => void
 }
 
@@ -110,7 +110,7 @@ export function ShowDetailView({
 
   function confirmToWatch() {
     setPicking(null)
-    onAddToWatch(visibility)
+    onAddToWatch(visibility, pickableProviders)
   }
 
   return (

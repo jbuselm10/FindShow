@@ -78,6 +78,7 @@ export type ToWatchItem = {
   name: string
   year: string | null
   posterUrl: string | null
+  selectedProviders: Provider[]
   visibility: ListVisibility
   updatedAt?: string
 }
