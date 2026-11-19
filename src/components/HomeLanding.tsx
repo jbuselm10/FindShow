@@ -11,6 +11,7 @@ type HomeLandingProps = {
   onSearch: (query: string) => void
   onEnterEmail: (email: string, firstName: string) => void
   onContinueSaved: () => void
+  onRemoveEmailAndLists: () => void
   onOpenTitle: (id: number, mediaType: MediaType) => void
 }
 
@@ -22,6 +23,7 @@ export function HomeLanding({
   onSearch,
   onEnterEmail,
   onContinueSaved,
+  onRemoveEmailAndLists,
   onOpenTitle,
 }: HomeLandingProps) {
   const [query, setQuery] = useState('')
@@ -144,11 +146,21 @@ export function HomeLanding({
       </form>
 
       {savedEmail ? (
-        <button type="button" className="landing-link" onClick={onContinueSaved} disabled={loading}>
-          {loading
-            ? 'Loading…'
-            : `Continue as ${savedFirstName ? `${savedFirstName} · ` : ''}${savedEmail}`}
-        </button>
+        <div className="landing-continue-row">
+          <button type="button" className="landing-link" onClick={onContinueSaved} disabled={loading}>
+            {loading
+              ? 'Loading…'
+              : `Continue as ${savedFirstName ? `${savedFirstName} · ` : ''}${savedEmail}`}
+          </button>
+          <button
+            type="button"
+            className="landing-link landing-link--danger"
+            onClick={onRemoveEmailAndLists}
+            disabled={loading}
+          >
+            Remove email
+          </button>
+        </div>
       ) : null}
 
       <form className="landing-block public-browse" onSubmit={(event) => void handlePublicSearch(event)}>

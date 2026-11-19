@@ -571,6 +571,14 @@ a:hover {
   color: #e48a8a;
 }
 
+.landing-continue-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.1rem;
+  margin-top: 0.35rem;
+}
+
 .landing-link,
 .hero-home-link {
   border: 0;

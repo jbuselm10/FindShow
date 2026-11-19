@@ -615,6 +615,7 @@ export default function App() {
           onContinueSaved={() => {
             if (email) void enterWithEmail(email, 'watching')
           }}
+          onRemoveEmailAndLists={requestRemoveEmailAndLists}
           onOpenTitle={(id, mediaType) => {
             setFromView('landing')
             void openTitle(id, mediaType)
