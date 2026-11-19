@@ -27,12 +27,18 @@ function request_path(): string
     $path = rawurldecode($path);
     $path = rtrim($path, '/') ?: '/';
 
-    if (preg_match('#(/api/(?:chat|search|title/(?:movie|tv)/[^/]+/providers|show/[^/]+/providers))$#', $path, $matches)) {
+    if (preg_match(
+        '#(/api/(?:chat|search|lists/(?:load|watching|to-watch|public-search|delete)|title/(?:movie|tv)/[^/]+/providers|show/[^/]+/providers))$#',
+        $path,
+        $matches
+    )) {
         return $matches[1];
     }
 
     return $path;
 }
+
+require_once __DIR__ . '/lists.php';
 
 function load_config(): array
 {
@@ -475,6 +481,41 @@ try {
             send_json(405, ['error' => 'Method not allowed']);
         }
         handle_chat();
+    }
+
+    if ($path === '/api/lists/load') {
+        if ($method !== 'POST') {
+            send_json(405, ['error' => 'Method not allowed']);
+        }
+        handle_lists_load();
+    }
+
+    if ($path === '/api/lists/watching') {
+        if ($method !== 'POST') {
+            send_json(405, ['error' => 'Method not allowed']);
+        }
+        handle_lists_watching();
+    }
+
+    if ($path === '/api/lists/to-watch') {
+        if ($method !== 'POST') {
+            send_json(405, ['error' => 'Method not allowed']);
+        }
+        handle_lists_to_watch();
+    }
+
+    if ($path === '/api/lists/public-search') {
+        if ($method !== 'POST') {
+            send_json(405, ['error' => 'Method not allowed']);
+        }
+        handle_lists_public_search();
+    }
+
+    if ($path === '/api/lists/delete') {
+        if ($method !== 'POST') {
+            send_json(405, ['error' => 'Method not allowed']);
+        }
+        handle_lists_delete();
     }
 
     if ($method !== 'GET') {

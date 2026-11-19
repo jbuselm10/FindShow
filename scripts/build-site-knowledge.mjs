@@ -160,7 +160,12 @@ async function main() {
     'Documentaries indexed as movies are included in search.',
     'Streaming availability is powered by JustWatch via TMDB (The Movie Database).',
     'Provider categories include: Stream with subscription (flatrate), Free with ads, Free, Rent, and Buy.',
-    'Users can browse a Previously viewed list of titles they opened, and remove items from that history.',
+    'Every page has navigation for Home, Currently Watching, and Movies and Shows to watch.',
+    'The home page has a Find a Show or Movie search box and an Enter email box with an optional First name.',
+    'Currently Watching stores TV shows with the streaming services the user selects when adding them.',
+    'Movies and Shows to watch is a separate list for both movies and TV shows.',
+    'From search, adding to a list prompts for email if the user has not entered one yet.',
+    'Lists are saved by email with no password; first name is optional for a future public list search feature. Saves are private by default for now.',
     'The site focuses on US streaming availability.',
     'A Site help chat answers questions using public site documentation and UI copy, not live TMDB lookups for arbitrary titles.',
   ].join(' ')

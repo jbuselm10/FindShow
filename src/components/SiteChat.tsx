@@ -13,7 +13,6 @@ export function SiteChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sources, setSources] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -82,7 +81,6 @@ export function SiteChat() {
     try {
       const data = await sendChatMessage(nextMessages)
       setMessages([...nextMessages, { role: 'assistant', content: data.reply }])
-      setSources(data.sources ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chat failed')
     } finally {
@@ -130,9 +128,6 @@ export function SiteChat() {
               <p className="site-chat-error" role="alert">
                 {error}
               </p>
-            ) : null}
-            {!loading && sources.length > 0 && messages.length > 0 ? (
-              <p className="site-chat-sources">Sources: {sources.join(', ')}</p>
             ) : null}
           </div>
 

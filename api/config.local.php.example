@@ -11,4 +11,6 @@ return [
   'OPENAI_API_KEY' => 'your_openai_api_key_here',
   // Optional; defaults to gpt-4o-mini
   'OPENAI_MODEL' => 'gpt-4o-mini',
+  // Optional; absolute path to JSON lists file outside the web root
+  // 'LIST_DATA_PATH' => '/home/USERNAME/findshow-lists.json',
 ];

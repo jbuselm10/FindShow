@@ -58,3 +58,43 @@ export type ChatResponse = {
   reply: string
   sources?: string[]
 }
+
+export type ListVisibility = 'private' | 'public'
+
+export type WatchingItem = {
+  id: number
+  mediaType: 'tv'
+  name: string
+  year: string | null
+  posterUrl: string | null
+  selectedProviders: Provider[]
+  visibility: ListVisibility
+  updatedAt?: string
+}
+
+export type ToWatchItem = {
+  id: number
+  mediaType: MediaType
+  name: string
+  year: string | null
+  posterUrl: string | null
+  visibility: ListVisibility
+  updatedAt?: string
+}
+
+export type UserLists = {
+  watching: WatchingItem[]
+  toWatch: ToWatchItem[]
+  firstName?: string | null
+}
+
+export type PublicListProfile = {
+  email: string
+  firstName: string | null
+  watching: WatchingItem[]
+  toWatch: ToWatchItem[]
+}
+
+export type PublicSearchResponse = {
+  results: PublicListProfile[]
+}

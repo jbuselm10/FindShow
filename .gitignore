@@ -16,6 +16,10 @@ dist-ssr
 !.env.example
 api/config.local.php
 api/site-knowledge.json
+data/
+*.sqlite
+*.sqlite-journal
+findshow-lists.json
 
 # Editor directories and files
 .vscode/*

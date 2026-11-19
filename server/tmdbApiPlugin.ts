@@ -175,6 +175,15 @@ function createApiMiddleware(apiKey: string): Connect.NextHandleFunction {
     }
 
     try {
+      const url = readUrl(req)
+      if (
+        url.pathname === '/api/chat' ||
+        url.pathname.startsWith('/api/lists')
+      ) {
+        next()
+        return
+      }
+
       if (!apiKey) {
         sendJson(res, 500, {
           error: 'TMDB_API_KEY is not configured. Add it to your .env file.',
@@ -182,7 +191,6 @@ function createApiMiddleware(apiKey: string): Connect.NextHandleFunction {
         return
       }
 
-      const url = readUrl(req)
       if (req.method === 'GET' && url.pathname === '/api/search') {
         await handleSearch(apiKey, req, res)
         return
