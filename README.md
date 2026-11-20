@@ -9,7 +9,7 @@ Find which streaming service a TV show or movie is on (US). Documentaries indexe
 - **Currently Watching** — TV shows with the streaming services you pick.
 - **Movies and Shows to watch** — movies and TV titles you want to watch later.
 - From search, **Add to list** prompts for email (and optional first name) if needed.
-- Saves default to **Private**. Choose **Public** when saving so others can find that title by searching your email or first name on Home (**Browse public lists**).
+- Saves default to **Private**. Choose **Public** when saving so others can find that title under **Search Other Shows** on Home (by email/name, or **Search all**).
 - Lists are tied to your email with **no password** in v1. From a list page you can **Remove email & lists** (with confirmation) to permanently delete that email’s saved data.
 - Floating **Site help** answers questions from indexed public site content using OpenAI (not live title lookups).
 

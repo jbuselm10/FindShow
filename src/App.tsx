@@ -3,6 +3,7 @@ import {
   deleteUserLists,
   getTitleProviders,
   loadUserLists,
+  searchPublicLists,
   searchShows,
   updateToWatch,
   updateWatching,
@@ -11,6 +12,7 @@ import { ConfirmDeleteListsPrompt } from './components/ConfirmDeleteListsPrompt'
 import { EmailSavePrompt } from './components/EmailSavePrompt'
 import { HomeLanding } from './components/HomeLanding'
 import { ListPage } from './components/ListPage'
+import { PublicListsPage } from './components/PublicListsPage'
 import { SearchForm } from './components/SearchForm'
 import { SearchResults } from './components/SearchResults'
 import { ShowDetailView } from './components/ShowDetail'
@@ -31,6 +33,7 @@ import type {
   ListVisibility,
   MediaType,
   Provider,
+  PublicListProfile,
   SearchResult,
   ShowDetail,
   UserLists,
@@ -70,6 +73,11 @@ export default function App() {
   const [deletePromptOpen, setDeletePromptOpen] = useState(false)
   const [deletePromptError, setDeletePromptError] = useState<string | null>(null)
   const [deletePromptLoading, setDeletePromptLoading] = useState(false)
+  const [personQuery, setPersonQuery] = useState(() => initialLocation.person ?? '')
+  const [publicResults, setPublicResults] = useState<PublicListProfile[]>([])
+  const [publicLoading, setPublicLoading] = useState(false)
+  const [publicError, setPublicError] = useState<string | null>(null)
+  const loadPublicListsRef = useRef<(person?: string) => Promise<void>>(async () => {})
 
   const openTitleRef = useRef<
     (id: number, mediaType: MediaType, options?: { pushHistory?: boolean; query?: string }) => Promise<void>
@@ -133,6 +141,15 @@ export default function App() {
         return
       }
 
+      if (next.view === 'publicLists') {
+        setQuery('')
+        setResults([])
+        setHasSearched(false)
+        setPersonQuery(next.person ?? '')
+        void loadPublicListsRef.current(next.person ?? '')
+        return
+      }
+
       if (next.view === 'landing' || next.view === 'watching' || next.view === 'toWatch') {
         setQuery('')
         setResults([])
@@ -172,6 +189,12 @@ export default function App() {
 
     if (state.view === 'search' && state.query) {
       void runSearchRef.current(state.query, { pushHistory: false })
+      return
+    }
+
+    if (state.view === 'publicLists') {
+      setPersonQuery(state.person ?? '')
+      void loadPublicListsRef.current(state.person ?? '')
       return
     }
 
@@ -232,6 +255,43 @@ export default function App() {
   function goFindFromLanding(searchQuery: string) {
     setFromView('landing')
     void runSearch(searchQuery, { pushHistory: true })
+  }
+
+  async function loadPublicLists(person = '') {
+    const trimmed = person.trim()
+    setPublicLoading(true)
+    setPublicError(null)
+    try {
+      const response = await searchPublicLists(trimmed)
+      setPublicResults(response.results)
+    } catch (err) {
+      setPublicResults([])
+      setPublicError(err instanceof Error ? err.message : 'Could not load public lists')
+    } finally {
+      setPublicLoading(false)
+    }
+  }
+
+  loadPublicListsRef.current = loadPublicLists
+
+  function openPublicLists(person = '') {
+    const trimmed = person.trim()
+    setPersonQuery(trimmed)
+    setFromView('publicLists')
+    setView('publicLists')
+    setShow(null)
+    setSelected(null)
+    setError(null)
+    navigateApp(
+      {
+        findShow: true,
+        view: 'publicLists',
+        person: trimmed || undefined,
+        fromView: 'publicLists',
+      },
+      'push',
+    )
+    void loadPublicLists(trimmed)
   }
 
   function goFindNewShow() {
@@ -403,6 +463,21 @@ export default function App() {
       return
     }
 
+    if (fromView === 'publicLists') {
+      setView('publicLists')
+      navigateApp(
+        {
+          findShow: true,
+          view: 'publicLists',
+          person: personQuery.trim() || undefined,
+          fromView: 'publicLists',
+        },
+        'replace',
+      )
+      void loadPublicLists(personQuery)
+      return
+    }
+
     setView('landing')
     navigateApp({ findShow: true, view: 'landing' }, 'replace')
   }
@@ -562,7 +637,9 @@ export default function App() {
         ? 'Back to Currently Watching'
         : fromView === 'toWatch'
           ? 'Back to Movies and Shows to watch'
-          : 'Back'
+          : fromView === 'publicLists'
+            ? 'Back to Search Other Shows'
+            : 'Back'
   const showSearchChrome = view === 'search' || view === 'detail'
   const isOnWatching = Boolean(
     show && show.mediaType === 'tv' && lists.watching.some((item) => item.id === show.id),
@@ -579,7 +656,9 @@ export default function App() {
         ? "TV shows you're watching, with the services you chose."
         : view === 'toWatch'
           ? 'Movies and shows you want to watch later.'
-          : 'Type a show or movie. See where it streams.'
+          : view === 'publicLists'
+            ? 'Public watching and to-watch lists from other people.'
+            : 'Type a show or movie. See where it streams.'
 
   return (
     <div className="app-shell">
@@ -616,8 +695,20 @@ export default function App() {
             if (email) void enterWithEmail(email, 'watching')
           }}
           onRemoveEmailAndLists={requestRemoveEmailAndLists}
+          onSearchOtherShows={(value) => openPublicLists(value)}
+          onSearchAllOtherShows={() => openPublicLists()}
+        />
+      ) : null}
+
+      {view === 'publicLists' ? (
+        <PublicListsPage
+          query={personQuery}
+          loading={publicLoading}
+          error={publicError}
+          results={publicResults}
+          onBack={goHome}
           onOpenTitle={(id, mediaType) => {
-            setFromView('landing')
+            setFromView('publicLists')
             void openTitle(id, mediaType)
           }}
         />

@@ -1,13 +1,14 @@
 import type { MediaType } from './types'
 
-export type AppView = 'landing' | 'watching' | 'toWatch' | 'search' | 'detail'
+export type AppView = 'landing' | 'watching' | 'toWatch' | 'search' | 'detail' | 'publicLists'
 
-export type ListFromView = 'landing' | 'watching' | 'toWatch'
+export type ListFromView = 'landing' | 'watching' | 'toWatch' | 'publicLists'
 
 export type AppHistoryState = {
   findShow: true
   view: AppView
   query?: string
+  person?: string
   id?: number
   mediaType?: MediaType
   /** Where search was entered from, for Back navigation */
@@ -20,6 +21,7 @@ function normalizeView(view: unknown): AppView | null {
   if (view === 'toWatch') return 'toWatch'
   if (view === 'search') return 'search'
   if (view === 'detail') return 'detail'
+  if (view === 'publicLists') return 'publicLists'
   return null
 }
 
@@ -34,12 +36,19 @@ export function normalizeAppState(state: AppHistoryState): AppHistoryState {
   const view = normalizeView((state as { view?: unknown }).view) ?? 'landing'
   const fromRaw = (state as { fromView?: unknown }).fromView
   let fromView: ListFromView | undefined
-  if (fromRaw === 'landing' || fromRaw === 'watching' || fromRaw === 'toWatch') {
+  if (
+    fromRaw === 'landing' ||
+    fromRaw === 'watching' ||
+    fromRaw === 'toWatch' ||
+    fromRaw === 'publicLists'
+  ) {
     fromView = fromRaw
   } else if (fromRaw === 'myLists') {
     fromView = 'watching'
   }
-  return { ...state, view, fromView }
+  const person =
+    typeof state.person === 'string' && state.person.trim() ? state.person.trim() : undefined
+  return { ...state, view, fromView, person }
 }
 
 export function parseTitleParam(value: string | null): { id: number; mediaType: MediaType } | null {
@@ -52,6 +61,7 @@ export function parseTitleParam(value: string | null): { id: number; mediaType: 
 export function buildAppUrl(options: {
   view?: AppView
   query?: string
+  person?: string
   id?: number
   mediaType?: MediaType
 }): string {
@@ -64,6 +74,11 @@ export function buildAppUrl(options: {
   if (!query && options.id == null) {
     if (options.view === 'watching') params.set('watching', '1')
     if (options.view === 'toWatch') params.set('towatch', '1')
+    if (options.view === 'publicLists') {
+      params.set('others', '1')
+      const person = options.person?.trim()
+      if (person) params.set('person', person)
+    }
   }
   const qs = params.toString()
   return qs ? `/?${qs}` : '/'
@@ -75,6 +90,8 @@ export function readLocationState(): AppHistoryState {
   const title = parseTitleParam(params.get('title'))
   const watching = params.get('watching') === '1' || params.get('lists') === '1'
   const toWatch = params.get('towatch') === '1'
+  const others = params.get('others') === '1'
+  const person = (params.get('person') ?? '').trim()
 
   if (title) {
     return {
@@ -88,6 +105,14 @@ export function readLocationState(): AppHistoryState {
 
   if (query) {
     return { findShow: true, view: 'search', query }
+  }
+
+  if (others) {
+    return {
+      findShow: true,
+      view: 'publicLists',
+      person: person || undefined,
+    }
   }
 
   if (toWatch) {
@@ -106,6 +131,7 @@ export function navigateApp(state: AppHistoryState, mode: 'push' | 'replace') {
   const url = buildAppUrl({
     view: normalized.view,
     query: normalized.query,
+    person: normalized.person,
     id: normalized.id,
     mediaType: normalized.mediaType,
   })

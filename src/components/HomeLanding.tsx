@@ -1,7 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { searchPublicLists } from '../api/client'
 import { isValidEmail } from '../listsStorage'
-import type { MediaType, PublicListProfile } from '../types'
 
 type HomeLandingProps = {
   savedEmail: string
@@ -12,7 +10,8 @@ type HomeLandingProps = {
   onEnterEmail: (email: string, firstName: string) => void
   onContinueSaved: () => void
   onRemoveEmailAndLists: () => void
-  onOpenTitle: (id: number, mediaType: MediaType) => void
+  onSearchOtherShows: (query: string) => void
+  onSearchAllOtherShows: () => void
 }
 
 export function HomeLanding({
@@ -24,16 +23,14 @@ export function HomeLanding({
   onEnterEmail,
   onContinueSaved,
   onRemoveEmailAndLists,
-  onOpenTitle,
+  onSearchOtherShows,
+  onSearchAllOtherShows,
 }: HomeLandingProps) {
   const [query, setQuery] = useState('')
   const [email, setEmail] = useState(savedEmail)
   const [firstName, setFirstName] = useState(savedFirstName)
   const [localError, setLocalError] = useState<string | null>(null)
   const [publicQuery, setPublicQuery] = useState('')
-  const [publicLoading, setPublicLoading] = useState(false)
-  const [publicError, setPublicError] = useState<string | null>(null)
-  const [publicResults, setPublicResults] = useState<PublicListProfile[] | null>(null)
 
   function handleSearch(event: FormEvent) {
     event.preventDefault()
@@ -56,28 +53,15 @@ export function HomeLanding({
     onEnterEmail(email.trim().toLowerCase(), firstName.trim())
   }
 
-  async function handlePublicSearch(event: FormEvent) {
+  function handlePublicSearch(event: FormEvent) {
     event.preventDefault()
     const trimmed = publicQuery.trim()
     if (!trimmed) {
-      setPublicError('Enter an email or first name.')
-      setPublicResults(null)
+      setLocalError('Enter an email or first name, or use Search all.')
       return
     }
-    setPublicError(null)
-    setPublicLoading(true)
-    try {
-      const response = await searchPublicLists(trimmed)
-      setPublicResults(response.results)
-      if (response.results.length === 0) {
-        setPublicError('No public lists matched that email or first name.')
-      }
-    } catch (err) {
-      setPublicResults(null)
-      setPublicError(err instanceof Error ? err.message : 'Could not search public lists')
-    } finally {
-      setPublicLoading(false)
-    }
+    setLocalError(null)
+    onSearchOtherShows(trimmed)
   }
 
   return (
@@ -113,8 +97,9 @@ export function HomeLanding({
 
       <form className="landing-block" onSubmit={handleEmailSubmit}>
         <label className="landing-label" htmlFor="landing-email">
-          Enter email
+          Enter email <span className="landing-optional">(optional)</span>
         </label>
+        <p className="landing-hint">Only needed if you want to track shows and movies on your lists.</p>
         <input
           id="landing-email"
           className="landing-email-input"
@@ -163,10 +148,10 @@ export function HomeLanding({
         </div>
       ) : null}
 
-      <form className="landing-block public-browse" onSubmit={(event) => void handlePublicSearch(event)}>
-        <h3 className="landing-subtitle">Browse public lists</h3>
+      <form className="landing-block public-browse" onSubmit={handlePublicSearch}>
+        <h3 className="landing-subtitle">Search Other Shows</h3>
         <p className="landing-copy landing-copy--tight">
-          Search by someone&apos;s email or first name to see titles they marked public.
+          Enter an email to see that person&apos;s public titles, or search all public lists.
         </p>
         <label className="landing-label" htmlFor="landing-public-search">
           Email or first name
@@ -179,74 +164,27 @@ export function HomeLanding({
             placeholder="friend@example.com or Alex"
             value={publicQuery}
             onChange={(event) => setPublicQuery(event.target.value)}
-            disabled={publicLoading}
             autoComplete="off"
           />
-          <button className="landing-primary" type="submit" disabled={publicLoading}>
-            {publicLoading ? 'Searching…' : 'Search'}
+          <button className="landing-primary" type="submit">
+            Search
           </button>
         </div>
+        <button
+          type="button"
+          className="landing-secondary landing-search-all"
+          onClick={() => {
+            setLocalError(null)
+            onSearchAllOtherShows()
+          }}
+        >
+          Search all
+        </button>
       </form>
 
-      {publicResults && publicResults.length > 0 ? (
-        <div className="public-results" aria-live="polite">
-          {publicResults.map((profile) => {
-            const label = profile.firstName
-              ? `${profile.firstName} · ${profile.email}`
-              : profile.email
-            return (
-              <article key={profile.email} className="public-profile">
-                <h4 className="public-profile-name">{label}</h4>
-                {profile.watching.length > 0 ? (
-                  <div className="public-section">
-                    <p className="public-section-label">Currently Watching</p>
-                    <ul className="public-title-list">
-                      {profile.watching.map((item) => (
-                        <li key={`watching-${item.id}`}>
-                          <button
-                            type="button"
-                            className="public-title-btn"
-                            onClick={() => onOpenTitle(item.id, 'tv')}
-                          >
-                            {item.name}
-                            {item.year ? ` (${item.year})` : ''}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {profile.toWatch.length > 0 ? (
-                  <div className="public-section">
-                    <p className="public-section-label">Movies and Shows to watch</p>
-                    <ul className="public-title-list">
-                      {profile.toWatch.map((item) => (
-                        <li key={`towatch-${item.mediaType}-${item.id}`}>
-                          <button
-                            type="button"
-                            className="public-title-btn"
-                            onClick={() => onOpenTitle(item.id, item.mediaType)}
-                          >
-                            {item.name}
-                            {item.year ? ` (${item.year})` : ''}
-                            {item.selectedProviders?.length
-                              ? ` · ${item.selectedProviders.map((provider) => provider.name).join(', ')}`
-                              : ''}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </article>
-            )
-          })}
-        </div>
-      ) : null}
-
-      {localError || error || publicError ? (
+      {localError || error ? (
         <p className="error-banner" role="alert">
-          {localError ?? error ?? publicError}
+          {localError ?? error}
         </p>
       ) : null}
     </section>

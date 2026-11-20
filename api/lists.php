@@ -562,11 +562,13 @@ function handle_lists_public_search(): void
 {
     $body = lists_read_json_body();
     $query = isset($body['query']) && is_string($body['query']) ? trim($body['query']) : '';
-    if ($query === '' || strlen($query) > 254) {
-        send_json(400, ['error' => 'Enter an email or first name to search']);
+    if (strlen($query) > 254) {
+        send_json(400, ['error' => 'Search text is too long']);
     }
 
+    $listAll = $query === '';
     $queryLower = strtolower($query);
+    $limit = $listAll ? 100 : 20;
     [$handle, $store] = lists_open_store();
     try {
         $results = [];
@@ -577,10 +579,12 @@ function handle_lists_public_search(): void
             $firstName = isset($bucket['firstName']) && is_string($bucket['firstName'])
                 ? trim($bucket['firstName'])
                 : '';
-            $emailMatch = strtolower($email) === $queryLower;
-            $nameMatch = $firstName !== '' && str_contains(strtolower($firstName), $queryLower);
-            if (!$emailMatch && !$nameMatch) {
-                continue;
+            if (!$listAll) {
+                $emailMatch = strtolower($email) === $queryLower;
+                $nameMatch = $firstName !== '' && str_contains(strtolower($firstName), $queryLower);
+                if (!$emailMatch && !$nameMatch) {
+                    continue;
+                }
             }
 
             $payload = lists_payload(['users' => [$email => $bucket]], $email);
@@ -602,7 +606,7 @@ function handle_lists_public_search(): void
                 'watching' => $publicWatching,
                 'toWatch' => $publicToWatch,
             ];
-            if (count($results) >= 20) {
+            if (count($results) >= $limit) {
                 break;
             }
         }

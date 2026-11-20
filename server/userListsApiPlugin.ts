@@ -254,11 +254,12 @@ function createListsMiddleware(root: string): Connect.NextHandleFunction {
 
       if (pathname === '/api/lists/public-search') {
         const query = typeof body.query === 'string' ? body.query.trim() : ''
-        if (!query || query.length > 254) {
-          sendJson(res, 400, { error: 'Enter an email or first name to search' })
+        if (query.length > 254) {
+          sendJson(res, 400, { error: 'Search text is too long' })
           return
         }
         const queryLower = query.toLowerCase()
+        const listAll = query === ''
         const results: Array<{
           email: string
           firstName: string | null
@@ -272,9 +273,11 @@ function createListsMiddleware(root: string): Connect.NextHandleFunction {
             typeof bucket.firstName === 'string' && bucket.firstName.trim()
               ? bucket.firstName.trim()
               : ''
-          const emailMatch = userEmail.toLowerCase() === queryLower
-          const nameMatch = firstName !== '' && firstName.toLowerCase().includes(queryLower)
-          if (!emailMatch && !nameMatch) continue
+          if (!listAll) {
+            const emailMatch = userEmail.toLowerCase() === queryLower
+            const nameMatch = firstName !== '' && firstName.toLowerCase().includes(queryLower)
+            if (!emailMatch && !nameMatch) continue
+          }
           const payload = fetchAll(store, userEmail)
           const watching = payload.watching.filter((row) => row.visibility === 'public')
           const toWatch = payload.toWatch.filter((row) => row.visibility === 'public')
@@ -285,7 +288,7 @@ function createListsMiddleware(root: string): Connect.NextHandleFunction {
             watching,
             toWatch,
           })
-          if (results.length >= 20) break
+          if (results.length >= (listAll ? 100 : 20)) break
         }
         sendJson(res, 200, { results })
         return

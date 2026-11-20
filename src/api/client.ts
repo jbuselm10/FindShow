@@ -87,7 +87,7 @@ export async function updateToWatch(
   return parseJson<UserLists>(response)
 }
 
-export async function searchPublicLists(query: string): Promise<PublicSearchResponse> {
+export async function searchPublicLists(query = ''): Promise<PublicSearchResponse> {
   const response = await fetch('/api/lists/public-search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
